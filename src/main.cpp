@@ -2,28 +2,23 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 
-// Wireless Connection
-const char* ssid = "";
-const char* password = "";
-const int port = 1101;
+#define SSID "your-ssid"
+#define PASSWORD "password"
+#define PORT 1101
 
-// Byte size of a float in C++
-const int floatByteSize = 4;
+#define FLOAT_BYTE_SIZE 4
 
-// Forza Horizon 5 Offset
-const int offset = 12;
+#define FH5_OFFSET 12
 
-// Data bytes of UDP packet
-const int rpmByte = 16;
-const int gearByte = 307 + offset;
-const int speedByte = 244 + offset;
-const int racePositionByte = 302 + offset;
-const int isRaceOnByte = 0;
-const int lapByte = 300 + offset;
+#define RPM_BYTE 16
+#define GEAR_BYTE 307 + FH5_OFFSET
+#define SPEED_BYTE 244 + FH5_OFFSET
+#define RACE_POSITION_BYTE 302 + FH5_OFFSET
+#define LAP_BYTE 300 + FH5_OFFSET
+#define IS_RACE_ON_BYTE 0
 
-// Factor for speed conversion
-const float milesPerHourFactor = 2.237;
-const float kilometerPerHourFactor = 3.6;
+#define MPH_FACTOR 2.237
+#define KMH_FACTOR 3.6
 
 // Values that WILL change
 float rpm;
@@ -38,8 +33,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 AsyncUDP udp;
 
 float parseFloat(AsyncUDPPacket packet, int byte) {
-  char data[floatByteSize];
-  memcpy(data, (packet.data() + byte), floatByteSize);
+  char data[FLOAT_BYTE_SIZE];
+  memcpy(data, (packet.data() + byte), FLOAT_BYTE_SIZE);
   return *((float*)data);
 }
 
@@ -48,11 +43,11 @@ int parseInt(AsyncUDPPacket packet, int byte) {
 }
 
 float speedInKMH(float speed) {
-  return speed * kilometerPerHourFactor;
+  return speed * KMH_FACTOR;
 }
 
 float speedInMPH(float speed) {
-  return speed * milesPerHourFactor;
+  return speed * MPH_FACTOR;
 }
 
 void setup() {
@@ -63,9 +58,9 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Connecting to");
   lcd.setCursor(0, 1);
-  lcd.print(ssid);
+  lcd.print(SSID);
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(SSID, PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) delay(500);
 
@@ -73,20 +68,20 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Connected!");
   lcd.setCursor(0, 1);
-  lcd.printf("%s:%d", WiFi.localIP().toString(), port);
+  lcd.printf("%s:%d", WiFi.localIP().toString(), PORT);
 
-  if (udp.listen(port)) udp.onPacket(
+  if (udp.listen(PORT)) udp.onPacket(
       [](AsyncUDPPacket packet) {
         if (!hasReceivedFirstData) lcd.clear();
         hasReceivedFirstData = true;
 
         if (packet.length() == 324) {
-          rpm = parseFloat(packet, rpmByte);
-          speed = parseFloat(packet, speedByte);
-          gear = parseInt(packet, gearByte);
-          racePosition = parseInt(packet, racePositionByte);
-          isRaceOn = parseInt(packet, isRaceOnByte);
-          lap = parseInt(packet, lapByte);
+          rpm = parseFloat(packet, RPM_BYTE);
+          speed = parseFloat(packet, SPEED_BYTE);
+          gear = parseInt(packet, GEAR_BYTE);
+          racePosition = parseInt(packet, RACE_POSITION_BYTE);
+          isRaceOn = parseInt(packet, IS_RACE_ON_BYTE);
+          lap = parseInt(packet, LAP_BYTE);
         } else {
           lcd.setCursor(0, 0);
           lcd.print("Waiting for data");

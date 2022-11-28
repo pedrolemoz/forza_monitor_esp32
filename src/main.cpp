@@ -108,24 +108,22 @@ void setup() {
             }
 
             lcd.setCursor(0, 0);
-            lcd.printf("%.0f ", speedInKMH(speed));
+            lcd.printf("%.0f KM/H ", speedInKMH(speed));
 
-            lcd.setCursor(6, 0);
-            lcd.printf("%.0f ", rpm);
-
-            lcd.setCursor(15, 0);
+            lcd.setCursor(10, 0);
+            lcd.print("GEAR ");
             if (gear == 0) {
               lcd.print("R");
             } else {
               lcd.printf("%d", gear);
             }
 
-            if (racePosition != 0) {
-              lcd.setCursor(0, 1);
-              lcd.printf("%d%s", racePosition, getOrdinalSuffix(racePosition));
+            lcd.setCursor(0, 1);
+            lcd.printf("%.0f RPM ", rpm);
 
-              lcd.setCursor(6, 1);
-              lcd.printf("Lap: %d", lap + 1);
+            if (racePosition != 0) {
+              lcd.setCursor(10, 1);
+              lcd.printf("%d%s", racePosition, getOrdinalSuffix(racePosition));
             }
           } else {
             lcd.setCursor(0, 0);

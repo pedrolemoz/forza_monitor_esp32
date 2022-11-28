@@ -27,7 +27,8 @@ int gear;
 int racePosition;
 int isRaceOn;
 int lap;
-bool hasReceivedFirstData = false;
+bool shouldClearDisplay = false;
+bool isWaitingForData = false;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 AsyncUDP udp;
@@ -50,6 +51,19 @@ float speedInMPH(float speed) {
   return speed * MPH_FACTOR;
 }
 
+const char* getOrdinalSuffix(int number) {
+  switch (number) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
 void setup() {
   lcd.init();
   lcd.backlight();
@@ -69,23 +83,58 @@ void setup() {
   lcd.print("Connected!");
   lcd.setCursor(0, 1);
   lcd.printf("%s:%d", WiFi.localIP().toString(), PORT);
+  shouldClearDisplay = true;
 
   if (udp.listen(PORT)) udp.onPacket(
       [](AsyncUDPPacket packet) {
-        if (!hasReceivedFirstData) lcd.clear();
-        hasReceivedFirstData = true;
+        if (shouldClearDisplay) {
+          lcd.clear();
+        }
+        shouldClearDisplay = false;
 
         if (packet.length() == 324) {
+          isRaceOn = parseInt(packet, IS_RACE_ON_BYTE);
           rpm = parseFloat(packet, RPM_BYTE);
           speed = parseFloat(packet, SPEED_BYTE);
           gear = parseInt(packet, GEAR_BYTE);
           racePosition = parseInt(packet, RACE_POSITION_BYTE);
-          isRaceOn = parseInt(packet, IS_RACE_ON_BYTE);
           lap = parseInt(packet, LAP_BYTE);
-        } else {
-          lcd.setCursor(0, 0);
-          lcd.print("Waiting for data");
-          lcd.clear();
+
+          if (isRaceOn) {
+            if (isWaitingForData) {
+              lcd.clear();
+
+              isWaitingForData = false;
+            }
+
+            lcd.setCursor(0, 0);
+            lcd.printf("%.0f ", speedInKMH(speed));
+
+            lcd.setCursor(6, 0);
+            lcd.printf("%.0f ", rpm);
+
+            lcd.setCursor(15, 0);
+            if (gear == 0) {
+              lcd.print("R");
+            } else {
+              lcd.printf("%d", gear);
+            }
+
+            if (racePosition != 0) {
+              lcd.setCursor(0, 1);
+              lcd.printf("%d%s", racePosition, getOrdinalSuffix(racePosition));
+
+              lcd.setCursor(6, 1);
+              lcd.printf("Lap: %d", lap + 1);
+            }
+          } else {
+            lcd.setCursor(0, 0);
+            lcd.print("Waiting for data");
+            lcd.setCursor(0, 1);
+            lcd.print("Game is paused");
+            if (shouldClearDisplay) shouldClearDisplay = false;
+            if (!isWaitingForData) isWaitingForData = true;
+          }
         }
       });
 }
